@@ -1,0 +1,28 @@
+{
+    if (![logs][data]) {
+    	throw new PunchRuntimeException("no input data : this parser expect to receive it under [logs][data]");
+    }
+    Tuple document = [logs][log];
+    Tuple tmp;
+    //document:[windows][log] = document;
+    if (csv(
+	"syslog_timestamp",
+	"hostname",
+	"event_type",
+	"timestamp",
+	"device_name",
+	"drive_letter").delim(",").trim().on([logs][data]).into(tmp)) {
+	document:[init][host][name] = tmp:[hostname];
+	document:[action] = tmp:[event_type];
+	document:[windows][timestamp] = tmp:[timestamp];
+	document:[windows][usb][device] = tmp:[device_name];
+	document:[windows][usb][letter] = tmp:[drive_letter];
+	date("iso", "MMM dd HH:mm:ss").on(tmp:[syslog_timestamp]).into(document:[rep][ts]);
+	if(tmp:[hostname].asString().equals("WORKSTATION1")) {
+		document:[init][host][ip] = "192.168.1.58";
+	}
+	document:[type] = "system";
+    } else {
+    	throw new PunchRuntimeException("Unknown type");
+    }
+}

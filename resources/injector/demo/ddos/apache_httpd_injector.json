@@ -1,0 +1,106 @@
+{
+	# Set here where you want to send your samples. It must be the input point of 
+	# point of your topology
+	"destination" : { "proto" : "tcp", "host" : "127.0.0.1", "port" : 9913 },
+
+	# The input load characteristics. Here injection will stop after
+	# 100000 messages have been sent with a rate of 1000 messages per seconds
+	"load" :{
+		"total_messages" : 1000,
+		"stats_publish_interval" : "2s",
+		"message_throughput" : 100
+	},
+
+	# In this section you define what you inject
+	"message" : {
+
+		# the payloads are template of what you inject. In there, %{src} will be replaced by a "src" field
+		# that you define below. 
+		"payloads" : [
+			"%{syslog_timestamp} DC1R1WebServer%{host_number} %{src_ip} - %{owner} [%{timestamp}] \"%{uri}\" 200 %{bytes} \"%{url}\" \"%{useragent}\"",
+			"%{syslog_timestamp} DC1R1WebServer%{host_number} %{src_ip} - %{owner} [%{timestamp}] \"%{uri}\" 200 %{bytes} \"%{url}\" \"%{useragent}\"",
+			"%{syslog_timestamp} DC1R1WebServer%{host_number} %{src_ip} - %{owner} [%{timestamp}] \"%{uri}\" 404 %{bytes} \"%{url}\" \"%{useragent}\"",
+			"%{syslog_timestamp} DC1R1WebServer%{host_number} %{src_ip} - - [16/Jan/2017:09:15:33 +0100] \"GET /sqlitemanager/main.php HTTP/1.1\" 301 %{bytes} \"-\" \"Python-urllib/2.7\" \"-\"",
+			"%{syslog_timestamp} DC1R1WebServer%{host_number} %{src_ip} - - [16/Jan/2017:11:28:43 +0100] \"GET /w00tw00t.at.ISC.SANS.DFind:) HTTP/1.1\" 400 %{bytes} \"-\" \"-\" \"-\"",
+			"%{syslog_timestamp} DC1R1WebServer%{host_number} %{src_ip} - - [17/Jan/2017:05:37:15 +0100] \"GET http://superurl/favicon.ico HTTP/1.1\" 400 %{bytes} \"-\" \"Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; SLCC1; .NET CLR 2.0.50727; Media Center PC 5.0; .NET CLR 3.5.21022; .NET CLR 3.5.30729; .NET CLR 3.0.30618)\" \"-\""
+		],
+ 		
+ 		# Each field must be defined here. 
+ 		# You can use the following field types: 
+ 		#   ipv4 : to generate ipv4 addresses
+ 		#   list : to loop over a set of items
+ 		#   counter : an iterating numeric value
+ 		#   random : a random numeric value
+ 		#   timestamp : a timestamp, for which you fully control the format, the start time, and the
+ 		#               tick interval. 
+		"fields" : {
+			"host_number" : {
+				"type" : "random",
+				"min" : 1,
+				"max" : 5
+			},
+			"syslog_timestamp" : {
+				"type" : "timestamp",
+				"format" : 	"MMM dd HH:mm:ss"
+			},
+			"syslog_host_counter" : {
+				"type" : "counter",
+				"min" : 0,
+				"max" : 256
+			},
+			"src_ip" : {
+				"type" : "ipv4",
+				"format" : "192.168.3.1"
+			},
+			"owner" : {
+				"type" : "list",
+				"content" : ["external"]
+			},
+			"uri" : {
+				"type" : "list",
+				"content" : [
+					"GET /style2.css HTTP/1.1", 
+					"GET /ref/index.html HTTP/1.1", 
+					"GET /yet/another.html.css HTTP/1.1"
+					]
+			},
+			"url" : {
+				"type" : "list",
+				"content" : [
+					"http://customer.fr/ecommerce", 
+					"https://webmail.com/auth",
+					"http://customer.fr/products",
+					"https://ticketing.com/"
+					]
+			},
+			"useragent" : {
+				"type" : "list",
+				"content" : [
+					"Mozilla/5.0 (iPad; U; CPU OS 4_3_5 like Mac OS X; en-us) AppleWebKit/533.17.9 (KHTML, like Gecko) Version/5.0.2 Mobile/8L1 Safari/6533.18.5", 
+					"Mozilla/5.0 (Windows; U; Windows NT 6.0; sv-SE) AppleWebKit/525.27.1 (KHTML, like Gecko) Version/3.2.1 Safari/525.27.1", 
+					"Mozilla/5.0 (Linux; Android 5.1.1; Nexus 5 Build/LMY48B; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/43.0.2357.65 Mobile Safari/537.36",
+					"Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) like Gecko",
+					"Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.0; Trident/4.0; GTB7.4; InfoPath.3; SV1; .NET CLR 3.1.76908; WOW64; en-US)",
+					"Windows-RSS-Platform/2.0 (IE 11.0; Windows NT 6.1)"
+					]
+			},
+			"counter" : {
+				"type" : "counter",
+				"min" : 0,
+				"max" : 64000
+			},
+			"bytes" : {
+				"type" : "random",
+				"min" : 5000,
+				"max" : 40000
+			},
+			"timestamp" : {
+				"type" : "timestamp",
+				"format" : 	"dd/MMM/yyyy:HH:mm:ss Z",
+				"start_time" : "2012.12.31",
+				"start_time_format" : "yyyy.MM.dd",
+				"tick_interval" : "1h"
+			}
+		}
+	}
+}

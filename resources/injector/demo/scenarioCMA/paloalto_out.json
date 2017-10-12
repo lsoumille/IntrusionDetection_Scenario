@@ -1,0 +1,44 @@
+{
+    "destination":{
+        "proto":"tcp",
+        "host":"127.0.0.1",
+        "port":9921
+    },
+    "load":{
+        "total_messages":1,
+        "stats_publish_interval":"2s",
+        "message_throughput":1
+    },
+    "message":{
+        "payloads":[
+            "%{syslog_timestamp},010108000421,TRAFFIC,Allow,172.16.1.254,109.174.84.178,%{rule_name_and_port}"
+        ],
+        "fields":{
+            "syslog_timestamp":{
+                "type":"timestamp",
+                "format":"MMM dd HH:mm:ss"
+            },
+            "dst_ip":{
+                "type":"ipv4",
+                "format":"[0-255].[0-255].[0-255].[0-255]"
+            },
+            "src_ip":{
+                "type":"ipv4",
+                "format":"172.16.1.254"
+            },
+            "rule_name_and_port":{
+                "type":"list",
+                "content":[
+                    "allow_http,5665,80,TCP"
+                ]
+            },
+	    "timestamp" : {
+		"type" : "timestamp",
+		"format" : 	"dd/MMM/yyyy:HH:mm:ss Z",
+		"start_time" : "2012.12.31",
+		"start_time_format" : "yyyy.MM.dd",
+		"tick_interval" : "1h"
+	    }
+        }
+    }
+}

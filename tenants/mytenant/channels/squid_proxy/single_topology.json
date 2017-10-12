@@ -1,0 +1,167 @@
+  {
+    "tenant" : "mytenant",
+    "channel" : "squid_proxy",
+    "name" : "single",
+    "meta" : {
+      "tenant" : "mytenant",
+      "channel" : "squid_proxy",
+      "vendor" : "squid"
+    },
+    "spouts" : [
+      {
+            "type" : "syslog_spout",
+            "spout_settings" : { 
+              "listen" : {
+                "proto" : "tcp", 
+                "host" : "0.0.0.0", 
+                "port" : 9915
+              }, 
+              "load_control" : "none",
+              "load_control.rate" : 500,
+              "load_control.adaptative" : true,
+              "self_monitoring.activation" : true,
+              "self_monitoring.period" : 10,
+              "metrics_tags" : {
+                "technology": "squid" 
+              }
+            },
+            "storm_settings" : {
+              "executors": 1,
+              "component" : "tcp_spout_squid_proxy",
+              "publish" : [ 
+                { 
+                  "stream" : "logs" , 
+                  "fields" : [
+                    "log", 
+                    "local_host", 
+                    "local_port", 
+                    "remote_host", 
+                    "remote_port", 
+                    "local_timestamp", 
+                    "local_uuid"
+                  ]
+                }
+              ] 
+            }
+        }
+    ],
+
+    "bolts" : [
+      {
+        "type" : "punch_bolt",
+        "bolt_settings" : {
+          
+          "punchlet_json_resources" : [
+          ],
+          "punchlet" : [
+            "standard/common/input.punch",
+            "LMCUseCases/Squid/parsing_syslog_header.punch",
+            "LMCUseCases/Squid/parsing.punch",
+	    "standard/common/geoip.punch"
+          ]
+        },
+        "storm_settings" : {
+          "executors": 1,
+          "component" : "punch_bolt",
+          "publish" : [ 
+            { 
+              "stream" : "logs", 
+              "fields" : [
+                "raw_log",
+                "log", 
+                "local_uuid",
+                "es_index"
+              ]  
+            }
+          ],
+          "subscribe" : [ 
+            { 
+              "component" : "tcp_spout_squid_proxy", 
+              "stream" : "logs",
+              "grouping": "localOrShuffle"
+            }
+          ] 
+        }
+      },
+      {
+        "type" : "elasticsearch_bolt",
+        "bolt_settings" : {
+          "watchdog_timeout" : "180s",
+          "batch_size" : 1000,
+          "queue_size" : 1100,
+          "batch_interval" : 1000,
+          "data_field" : "log",
+          "index_field" : "es_index",
+          "type_field" : "es_type",
+          "id_field" : "local_uuid",
+          "fast_tuple_failure" : false,
+          "request_timeout" : "20s",
+          "cluster_id" : "es_search",
+          "es_timestamp"  : "ts",
+          "es_timestamp_format"  : "iso",
+          "documents_additional_fields" : {
+                  "message" : {
+                    "storm_field" : "raw_log"
+                  }
+               },
+          "error_timestamp" : "ts",
+          "document_type" : "log",
+          "error_type" : "log",
+          "index_pattern_prefix" : "events-%{tenant}-",
+          "index_pattern_date_suffix" : "yyyy.MM.dd",
+          "index_failed" : true
+        },
+        "storm_settings" : {
+          "executors": 1,
+          "component" : "elasticsearch",
+          "subscribe" : [ 
+            { 
+              "component" : "punch_bolt", 
+              "stream" : "logs", 
+              "grouping": "localOrShuffle"
+            }
+          ] 
+        }
+      }
+      
+    ],
+
+    "metrics" : {
+        "reporters" : {
+            "elasticsearch_metric_reporter" : {
+              "type" : "elasticsearch",
+              "cluster_name" : "es_search",
+              "transport" :
+                  "127.0.0.1:9300", 
+              "max_results_size" : 10000,
+              "native_es_settings" : {
+                "transport.netty.workerCount" : "1"
+              }
+            }
+        }
+    },            
+
+    "exception_catcher_bolt" : {
+      "punchlet" : "standard/common/exception_handler.punch",
+      "executors" : 1
+    }, 
+    
+    "storm_settings" : {
+        "metrics_consumers": [ "org.apache.storm.metric.LoggingMetricsConsumer" ],
+        "topology.builtin.metrics.bucket.size.secs": 30,
+        "supervisor.monitor.frequency.secs" : 60,
+        "topology.max.spout.pending" : 2000,
+        "topology.enable.message.timeouts": true,
+        "topology.message.timeout.secs" : 30,
+        "topology.worker.childopts": "-Xms256m -Xmx256m",
+        "topology.receiver.buffer.size": 32,
+        "topology.executor.receive.buffer.size": 16384,
+        "topology.executor.send.buffer.size": 16384,
+        "topology.transfer.buffer.size": 32,
+        "topology.worker.shared.thread.pool.size": 4,
+        "topology.disruptor.wait.strategy": "com.lmax.disruptor.BlockingWaitStrategy",
+        "topology.spout.wait.strategy": "org.apache.storm.spout.SleepSpoutWaitStrategy",
+        "topology.sleep.spout.wait.strategy.time.ms": 50,
+        "topology.workers" : 1
+    }
+}

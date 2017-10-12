@@ -1,0 +1,24 @@
+{
+    // Throws an exception nothing found under [logs][data]
+    String data = root:[logs][data].asString();
+    Tuple document = root:[logs][log];
+    Tuple tmp;
+    
+    if (grok("ScanID:%{INT:tmp:[scan_id]},Begin:%{SYSLOGTIMESTAMP:tmp:[start_date]},End:%{SYSLOGTIMESTAMP:tmp:[end_date]},Threats:%{INT:tmp:[threat_number]},Infected:%{INT:tmp:[infected_number]},Scaned:%{INT:tmp:[scan_files_number]},'%{GREEDYDATA:tmp:[message]}'").on(data)) {
+    	document:[symantec][scan][start] = tmp:[start_date];
+	document:[symantec][scan][end] = tmp:[end_date];
+	document:[symantec][threat] = tmp:[threat_number];
+	document:[symantec][infected] = tmp:[infected_number];
+	document:[symantec][files] = tmp:[scan_files_number];
+	document:[symantec][scan][id] = tmp:[scan_id];
+	document:[alarm][name] = tmp:[message];
+	document:[action] = "scan";
+	document:[type] = "av";
+	if(document:[rep][host][name].asString().equals("WORKSTATION1")) {
+		document:[init][host][ip] = "192.168.1.58";
+	}
+	document:[init][host][name] = document:[rep][host][name];
+    } else {
+	throw new PunchRuntimeException("Body is malformed");
+    }
+}

@@ -1,0 +1,26 @@
+{
+    // Throws an exception nothing found under [logs][data]
+    String data = root:[logs][data].asString();
+    Tuple document = root:[logs][log];
+    Tuple tmp;
+    
+    // Log example :
+    // Jan 17 08:10:31 host25 189.144.140.2 - ced [01/Jan/2013:02:00:00 +0100] "GET /ref/index.html HTTP/1.1" 200 3279 "http://www.semicomplete.com/blog/geekery/bypassing-captive-portals.html" "Mozilla/5.0 (Windows; U; Windows NT 6.0; sv-SE) AppleWebKit/525.27.1 (KHTML, like Gecko) Version/3.2.1 Safari/525.27.1"
+
+    if (!grok("%{COMBINEDAPACHELOG:tmp}").on(data)) {
+         throw new PunchRuntimeException("grok failed to parse apache log");    
+    }
+
+    document:[type] = "web";
+
+    date("iso", "dd/MMM/yyyy:H:mm:ss Z").on([tmp][timestamp]).into(document:[obs][ts]);
+
+    document:[target][uri][urn] = [tmp][request];
+    document:[init][process][name] = [tmp][agent];
+    document:[app][return][code] = [tmp][response];
+    document:[session][out][byte] = [tmp][bytes];
+    document:[init][host][ip] = [tmp][clientip];
+    document:[app][method] = [tmp][verb];
+    if(document:[rep][host][name]) document:[target][host][name] = document:[rep][host][name];
+
+}

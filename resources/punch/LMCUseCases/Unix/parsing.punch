@@ -1,0 +1,24 @@
+{
+    // Throws an exception nothing found under [logs][data]
+    String data = root:[logs][data].asString();
+    Tuple document = root:[logs][log];
+    Tuple tmp;
+    
+    if (grok("%{IP:tmp:[src_ip]} %{DATA:tmp:[signature]} %{INT:tmp:[priority]} %{INT:tmp:[nb_packet]}").on(data)) {
+    	document:[alarm][name] = tmp:[signature];
+	document:[alarm][sev] = tmp:[priority];
+	document:[init][host][ip] = tmp:[src_ip];
+	document:[unix][packets] = tmp:[nb_packet];
+	document:[type] = "ids";     
+    } else if (grok("%{PATH:tmp:[binary]} %{WORD:tmp:[status]}").on(data)) {
+	document:[target][process][name] = tmp:[binary];
+        document:[unix][status] = tmp:[status];
+	if(! (tmp:[status] == "OK")) {
+	    document:[alarm][name] = "Rootkit alert";
+	    document:[alarm][sev] = 5;
+	}
+	document:[type] = "av"; 
+    } else {
+	throw new PunchRuntimeException("Body is malformed");
+    }
+}

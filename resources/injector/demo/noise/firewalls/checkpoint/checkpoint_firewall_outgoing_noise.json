@@ -1,0 +1,69 @@
+{
+	# Set here where you want to send your samples. It must be the input point of 
+	# point of your topology
+	"destination" : { "proto" : "tcp", "host" : "127.0.0.1", "port" : 9911 },
+
+	# The input load characteristics. Here injection will stop after
+	# 100000 messages have been sent with a rate of 1000 messages per seconds
+	"load" :{
+		"total_messages" : 100000,
+		"stats_publish_interval" : "2s",
+		"message_throughput" : 12
+	},
+
+	# In this section you define what you inject
+	"message" : {
+
+		# the payloads are template of what you inject. In there, %{src} will be replaced by a "src" field
+		# that you define below. 
+		"payloads" : [
+			"%{syslog_timestamp} accept ; rule_name: allow_http ; src: %{src_ip_private} ; dst: %{src_dst} ; proto: TCP ; d_port: 80 ; s_port: %{s_port}",	
+			"%{syslog_timestamp} accept ; rule_name: allow_https ; src: %{src_ip_private} ; dst: %{src_dst} ; proto: TCP ; d_port: 443 ; s_port: %{s_port}",
+			"%{syslog_timestamp} accept ; rule_name: allow_ssh ; src: %{src_ip_private} ; dst: %{src_dst_dmz} ; proto: TCP ; d_port: 22 ; s_port: %{s_port}",
+			"%{syslog_timestamp} drop ; rule_name: default_policy ; src: %{src_ip_private} ; dst: %{src_dst} ; proto: %{proto} ; d_port: %{d_port} ; s_port: %{s_port}",
+	
+],
+ 		
+ 		# Each field must be defined here. 
+ 		# You can use the following field types: 
+ 		#   ipv4 : to generate ipv4 addresses
+ 		#   list : to loop over a set of items
+ 		#   counter : an iterating numeric value
+ 		#   random : a random numeric value
+ 		#   timestamp : a timestamp, for which you fully control the format, the start time, and the
+ 		#               tick interval. 
+		"fields" : {
+			"syslog_timestamp" : {
+				"type" : "timestamp",
+				"format" : 	"MMM dd HH:mm:ss"
+			},
+			"src_ip_private" : {
+				"type" : "ipv4",
+				"format" : "192.168.1.[2-255]"
+			},
+			"src_dst" : {
+				"type" : "ipv4",
+				"format" : "[0-255].[0-255].[0-255].[0-255]"
+			},
+			"src_dst_dmz" : {
+				"type" : "ipv4",
+				"format" : "192.168.3.[3-255]"
+			},
+			"proto" : {
+				"type" : "list",
+				"content" : ["TCP", "UDP"]
+			},
+			"d_port" : {
+				"type" : "random",
+				"min" : 5000,
+				"max" : 20000
+			},
+			"s_port" : {
+				"type" : "random",
+				"min" : 5000,
+				"max" : 20000
+			}
+		}
+	}
+}
+

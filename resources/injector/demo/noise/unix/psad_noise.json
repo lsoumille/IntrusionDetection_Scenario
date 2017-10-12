@@ -1,0 +1,57 @@
+{
+    "destination":{
+        "proto":"tcp",
+        "host":"127.0.0.1",
+        "port":9914
+    },
+    "load":{
+        "total_messages":10000,
+        "stats_publish_interval":"2s",
+        "message_throughput":7
+    },
+    "message":{
+        "payloads":[
+            "%{syslog_timestamp} DC1R1WebServer%{host_number} : %{src_ip} %{signature} %{priority} %{total_packets}"
+        ],
+        "fields":{
+            "syslog_timestamp":{
+                "type":"timestamp",
+                "format":"MMM dd HH:mm:ss"
+            },
+            "src_ip":{
+                "type":"ipv4",
+                "format":"192.168.3.2"
+            },
+	    "host_number" : {
+		"type":"random",
+		"min" : 1,
+		"max" : 5
+	    },
+	    "signature":{
+		"type":"list",
+		"content":[
+		    "ICMP Large ICMP Packet",
+		    "ICMP traceroute ipopts",
+		    "SCAN portscan",
+		    "BAD-TRAFFIC same SRC/DST",
+		    "BAD-TRAFFIC tcp port 0 traffic",
+		    "BAD-TRAFFIC udp port 0 traffic",
+		    "BAD-TRAFFIC loopback traffic",
+		    "WEB connection attempt",
+		    "WEB upload attempt",
+		    "SSH connection timeout"
+		]
+	    },
+	    "priority":{
+		"type":"random",
+		"min": 1,
+		"max": 3
+	    },
+	    "total_packets":{
+		"type": "random",
+		"min": 1,
+		"max": 50
+	    }
+        }
+    }
+}

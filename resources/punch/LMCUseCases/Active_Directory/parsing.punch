@@ -1,0 +1,32 @@
+{
+    // Throws an exception nothing found under [logs][data]
+    String data = root:[logs][data].asString();
+    Tuple document = root:[logs][log];
+    Tuple tmp;
+    
+    //Log example : timestamp hostname : str : user str : ip on dst_ip protocol : proto
+    //Log example : timestamp hostname : user USER successfully logged on dst_ip
+
+    if (grok("Logon attempt by %{WORD:tmp:[user]} Source Network Address %{IP:tmp:[src_ip]} on %{IP:tmp:[dst_ip]} protocol %{WORD:tmp:[proto]}").on(data)) {
+	document:[init][host][ip] = tmp:[src_ip];
+	document:[init][usr][name] = tmp:[user];
+	document:[target][host][ip] = tmp:[dst_ip];
+	document:[app][proto][name] = tmp:[proto];
+	document:[action] = "succeed";
+    } else if (grok("User %{WORD:tmp:[user]} successfully logged on to a computer Source Network Address %{IP:tmp:[src_ip]} on %{IP:tmp:[dst_ip]}").on(data)) {
+	document:[init][usr][name] = tmp:[user];
+	document:[target][host][ip] = tmp:[dst_ip];
+	document:[init][host][ip] = tmp:[src_ip];
+	document:[action] = "succeed";
+    } else if (grok("Login failure for user %{WORD:tmp:[user]} on %{IP:tmp:[dst_ip]}. Reason : %{GREEDYDATA:tmp:[reason]}").on(data)) {
+	document:[init][usr][name] = tmp:[user];
+	document:[target][host][ip] = tmp:[dst_ip];
+	document:[alarm][name] = tmp:[reason];
+	document:[alarm][sev] = 1;
+	document:[action] = "failed";
+    } else {
+	throw new PunchRuntimeException("body is malformed");
+    }
+    
+    document:[type] = "aaa";	
+}

@@ -1,0 +1,92 @@
+{
+	# Set here where you want to send your samples. It must be the input point of 
+	# point of your topology
+	"destination" : { "proto" : "tcp", "host" : "127.0.0.1", "port" : 9915 },
+
+	# The input load characteristics. Here injection will stop after
+	# 100000 messages have been sent with a rate of 1000 messages per seconds
+	"load" :{
+		"total_messages" : 1,
+		"stats_publish_interval" : "2s",
+		"message_throughput" : 1
+	},
+
+	# In this section you define what you inject
+	"message" : {
+
+		# the payloads are template of what you inject. In there, %{src} will be replaced by a "src" field
+		# that you define below. 
+		"payloads" : [
+			"%{syslog_timestamp} DC1R3Proxy : 40 10.0.0.1 200 %{bytes_downloaded} POST http://www.lenta.ru 109.174.84.178"					
+		],
+ 		
+ 		# Each field must be defined here. 
+ 		# You can use the following field types: 
+ 		#   ipv4 : to generate ipv4 addresses
+ 		#   list : to loop over a set of items
+ 		#   counter : an iterating numeric value
+ 		#   random : a random numeric value
+ 		#   timestamp : a timestamp, for which you fully control the format, the start time, and the
+ 		#               tick interval. 
+		"fields" : {
+			"syslog_timestamp" : {
+				"type" : "timestamp",
+				"format" : 	"MMM dd HH:mm:ss"
+			},
+			"duration" : {
+				"type" : "random",
+				"min" : 1,
+				"max" : 30
+			},
+			"src_ip" : {
+				"type" : "ipv4",
+				"format" : "172.16.1.1" 
+			},
+			"result_code" : {
+				"type" : "list",
+				"content" : [ "200", "302", "200", "400", "200", "500", "200"]
+			},
+			"bytes_downloaded" : {
+				"type" : "random",
+				"min" : 200000,
+				"max" : 300000
+			},
+			"request_meth" : {
+				"type" : "list",
+				"content" : ["GET", "POST", "GET"]
+			},
+			"url" : {
+				"type" : "list",
+				"content" : [
+					"http://customer.fr/ecommerce",
+					"https://webmail.com/auth",
+					"http://customer.fr/products",
+					"https://ticketing.com/"
+				]
+			},
+			"url_external" : {
+				"type" : "list",
+				"content" : [
+					"https://www.google.com",
+					"https://www.facebook.com",
+					"https://www.gmail.com",
+					"https://www.thalesgroup.com"
+				]
+			},
+			"external_ip" : {
+				"type" : "ipv4",
+				"format" : "[50-200].[20-130].[150-250].[2-250]"
+			},
+			"forwarded_ip" : {
+				"type" : "ipv4",
+				"format" : "192.168.3.[1-10]"
+			},
+			"internal_ip" : {
+				"type" : "ipv4",
+				"format" : "192.168.1.[2-253]"
+			}
+		}
+	}
+}
+
+

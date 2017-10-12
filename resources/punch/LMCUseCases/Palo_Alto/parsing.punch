@@ -1,0 +1,327 @@
+{
+ 
+// Software: Microsoft Exchange Server
+// Version: 14.0.0.0
+// Log-type: Message Tracking Log
+// Date: 2014-10-24T00:00:00.004Z
+// Fields: date-time,client-ip,client-hostname,server-ip,server-hostname,source-context,connector-id,source,event-id,internal-message-id,message-id,recipient-address,recipient-status,total-bytes,recipient-count,related-recipient-address,reference,message-subject,sender-address,return-path,message-info,directionality,tenant-id,original-client-ip,original-server-ip,custom-data
+
+  // The parsed log is stored as Json under the <stream><data_field> of the punchlet
+  // Default parsers assume the Storm stream is "logs" and the first field in the
+  // PunchBolt configuration is "log" 
+
+  if (![logs][data]) {
+    throw new PunchRuntimeException("no input data : this parser expect to receive it under [logs][data]");
+  }
+    Tuple document = [logs][log];
+    Tuple tmp;
+
+  if (grok("%{DATA},%{DATA},%{DATA:tmp:[type]},").on([logs][data])) {
+    switch (tmp:[type]) {      
+      case "TRAFFIC":
+        if (csv(
+          "receive_time",
+          "serial_number",
+          "type",
+          "action",
+          "source_ip",
+          "destination_ip",
+          "rule_name",
+          "source_port",
+          "destination_port",
+          "protocol"
+        ).delim(",").trim().on([logs][data]).into(tmp)) {
+
+
+        // check if ipv4 ip
+        if (tmp:[source_ip]){
+          if ( grok("^%{IPV4}$").on(tmp:[source_ip]) ) {
+            document:[init][host][ip] = tmp:[source_ip]; 
+            if(tmp:[nat_source_ip]){
+              document:[init][host][nat][ip] = tmp:[nat_source_ip]; 
+            }
+          }
+          else {
+            document:[PaloAlto][source_ip] = tmp:[source_ip];
+            document:[PaloAlto][nat_source_ip]= tmp:[nat_source_ip];
+          }
+        }
+
+        // check if ipv4 ip   
+        if (tmp:[destination_ip]){
+          if ( grok("^%{IPV4}$").on(tmp:[destination_ip]) ) {
+            document:[target][host][ip] = tmp:[destination_ip]; 
+            if(tmp:[nat_destination_ip]){
+              document:[target][host][nat][ip] = tmp:[nat_destination_ip]; 
+            }
+          }
+          else {
+            document:[PaloAlto][destination_ip] = tmp:[destination_ip];
+            document:[PaloAlto][nat_destination_ip] = tmp:[nat_destination_ip];
+          }
+        }
+
+        if(tmp:[protocol]) {
+          if(tmp:[destination_port] != "0" || tmp:[protocol] == "tcp" || tmp:[protocol] == "udp") {
+            document:[target][host][port] = tmp:[destination_port];
+            if(tmp:[nat_destination_port] == "0") {
+              document:[target][host][nat][port] = tmp:[nat_destination_port];
+            }
+          }
+        } 
+        if(tmp:[protocol]) {
+          if(tmp:[source_port] != "0" || tmp:[protocol] == "tcp" || tmp:[protocol] == "udp") {
+            document:[init][host][port] = tmp:[source_port];
+            if(tmp:[nat_source_port] == "0") {
+              document:[init][host][nat][port] = tmp:[nat_source_port];
+            }
+          }
+        }
+        document:[app][proto][name] = tmp:[protocol];
+        document:[action] = tmp:[action];
+        document:[type] =  "firewall";
+        document:[rule][name] = tmp:[rule_name];
+	document:[PaloAlto][id] = tmp:[serial_number];
+
+        if(tmp:[source_location]){
+          if(!grok("(?<document:/init/host/loc/cty_short>[a-zA-Z]{2})").on(tmp:[source_location])){
+            document:[PaloAlto][source_location] = tmp:[source_location];
+          }
+        }
+        if(tmp:[destination_location]){
+          if(!grok("(?<document:/target/host/loc/cty_short>^[a-zA-Z]{2}$)").on(tmp:[destination_location])){
+            document:[PaloAlto][destination_location] = tmp:[destination_location];
+          }
+        }
+      }
+      else {
+        throw new PunchRuntimeException("Not csv valid format : TRAFFIC");
+      }
+      break;
+
+    case "SYSTEM":      
+      if (csv(
+        "receive_time",
+        "serial_number",
+        "type",
+        "subtype",
+        "tb1",
+        "generated_time",
+        "virtual_system",
+        "event_id",
+        "object",
+        "tb2",
+        "tb3",
+        "module",
+        "severity",
+        "description",
+        "sequence_number",
+        "action_flags"
+      ).delim(",").trim().on([logs][data]).into(tmp)) {
+        
+
+        document:[type] = tmp:[type].replaceAll(" ", "_").toLowerCase();
+
+        if (tmp:[subtype] == "general"){          
+          if (grok("\: %{DATA:document:[init][uri][url]}, source\: %{IP:document:[init][host][ip]}").on(tmp:[description])){            
+            if (!(grok("^%{IPV4}$").on(document:[init][host][ip]))) {
+              move(document:[init][host][ip]).into(document:[PaloAlto][source_ip]);
+            }
+          }
+        }
+
+        if (tmp:[subtype] == "ntpd"){         
+          if (grok("%{IP:document:[target][host][ip]}").on(tmp:[description])){           
+            if (!(grok("^%{IPV4}$").on(document:[target][host][ip]))) {
+              move(document:[target][host][ip]).into(document:[PaloAlto][destination_ip]);
+            }
+          }
+        }
+
+
+        if (tmp:[subtype] == "vpn"){      
+          if (grok("SA\: %{IP:document:[init][host][ip]}\[%{NUMBER:document:[init][host][port]}\]-%{IP:document:[target][host][ip]}\[%{NUMBER:document:[target][host][port]}\]").on(tmp:[description])){            
+            if (!(grok("^%{IPV4}$").on(document:[target][host][ip]))) {
+              move(document:[target][host][ip]).into(document:[PaloAlto][destination_ip]);
+            }
+            if (!(grok("^%{IPV4}$").on(document:[init][host][ip]))) {
+              move(document:[init][host][ip]).into(document:[PaloAlto][source_ip]);
+            }
+          }
+        }
+
+        document:[Alarm][name] = tmp:[event_id];
+        document:[Alarm][sev] = tmp:[severity];
+
+        // specific fields
+        document:[PaloAlto][subtype] = tmp:[subtype];
+        document:[PaloAlto][module] = tmp:[module];
+        document:[PaloAlto][object] = tmp:[object];
+
+        //date
+        if (tmp:[generated_time]) {
+          date("iso", "yyyy/MM/dd HH:mm:ss").on(tmp:[generated_time]).into(document:[obs][ts]);
+        }
+      }
+      else {
+        throw new PunchRuntimeException("Not csv valid format : SYSTEM");
+      }   
+      break;
+
+
+    case "THREAT":      
+      if (csv(
+        "receive_time",
+        "serial_number",
+        "type",
+        "subtype",
+        "generated_time",
+        "source_ip",
+        "destination_ip",
+        "nat_source_ip",
+        "nat_destination_ip",
+        "rule_name",
+        "source_user",
+        "destination_user",
+        "application",
+        "virtual_system",
+        "source_zone",
+        "destination_zone",
+        "ingress_interface",
+        "egress_interface",
+        "log_forwarding_profile",
+        "future_use",
+        "session_id",
+        "repeat_count",
+        "source_port",
+        "destination_port",
+        "nat_source_port",
+        "nat_destination_port",
+        "flags",
+        "protocol",
+        "action",
+        "miscellaneous",
+        "threat_id",
+        "category",
+        "severity",
+        "bytes_received",
+        "direction",
+        "sequence_number",
+        "action_flags",
+        "source_location",
+        "destination_location",
+        "content_type",
+        "pcap_id",
+        "file_digest",
+        "cloud"          
+      ).delim(",").trim().on([logs][data]).into(tmp)) {
+
+        document:[type] = tmp:[type];
+
+        // check if ipv4 ip
+        if (tmp:[source_ip]){
+          if ( grok("^%{IPV4}$").on(tmp:[source_ip]) ) {
+            document:[init][host][ip] = tmp:[source_ip]; 
+            if(tmp:[nat_source_ip]){
+              document:[init][host][nat][ip] = tmp:[nat_source_ip]; 
+            }
+          }
+          else {
+            document:[PaloAlto][source_ip] = tmp:[source_ip];
+            document:[PaloAlto][nat_source_ip]= tmp:[nat_source_ip];
+          }
+        }
+
+        // check if ipv4 ip   
+        if (tmp:[destination_ip]){
+          if ( grok("^%{IPV4}$").on(tmp:[destination_ip]) ) {
+            document:[target][host][ip] = tmp:[destination_ip]; 
+            if(tmp:[nat_destination_ip]){
+              document:[target][host][nat][ip] = tmp:[nat_destination_ip]; 
+            }
+          }
+          else {
+            document:[PaloAlto][destination_ip] = tmp:[destination_ip];
+            document:[PaloAlto][nat_destination_ip] = tmp:[nat_destination_ip];
+          }
+        }
+
+        if(tmp:[protocol]) {
+          if(tmp:[destination_port] != "0" || tmp:[protocol] == "tcp" || tmp:[protocol] == "udp") {
+            document:[target][host][port] = tmp:[destination_port];
+            if(tmp:[nat_destination_port] == "0") {
+              document:[target][host][nat][port] = tmp:[nat_destination_port];
+            }
+          }
+        } 
+        if(tmp:[protocol]) {
+          if(tmp:[source_port] != "0" || tmp:[protocol] == "tcp" || tmp:[protocol] == "udp") {
+            document:[init][host][port] = tmp:[source_port];
+            if(tmp:[nat_source_port] == "0") {
+              document:[init][host][nat][port] = tmp:[nat_source_port];
+            }
+          }
+        }
+
+        document:[app][proto][name] = tmp:[protocol];
+        document:[app][name] = tmp:[application];
+        document:[action] = tmp:[action];
+        document:[rule] = tmp:[rule_name];
+        document:[session][id] = tmp:[session_id];
+
+        document:[type] = "firewall";
+
+        document:[target][usr][name]  = tmp:[destination user];
+        document:[init][usr][name] = tmp:[source user];       
+        
+        // location fields
+
+        if(tmp:[source_location]){
+          if(!grok("(?<document:/init/host/loc/cty_short>[a-zA-Z]{2})").on(tmp:[source_location])){
+            document:[PaloAlto][source_location] = tmp:[source_location];
+          }
+        }
+        if(tmp:[destination_location]){
+          if(!grok("(?<document:/target/host/loc/cty_short>^[a-zA-Z]{2}$)").on(tmp:[destination_location])){
+            document:[PaloAlto][destination_location] = tmp:[destination_location];
+          }
+        }
+
+        document:[action] = tmp:[action];
+        document:[alarm][name] = tmp:[threat_id];   
+
+
+        if(tmp:[subtype] == "URL") {
+            document:[target][uri][fulluri] = tmp:[miscellaneous]; 
+          } else {
+            document:[PaloAlto][file] = tmp:[miscellaneous];  
+          }    
+
+        // specific fields
+        document:[PaloAlto][type] = tmp:[type];  
+        document:[PaloAlto][subtype] = tmp:[subtype];                 
+        document:[PaloAlto][virtual_system] = tmp:[virtual_system];          
+        document:[PaloAlto][source_zone] = tmp:[source_zone];             
+        document:[PaloAlto][destination_zone] = tmp:[destination_zone];        
+        document:[PaloAlto][ingress_interface] = tmp:[ingress_interface];       
+        document:[PaloAlto][egress_interface] = tmp:[egress_interface];        
+        document:[PaloAlto][repeat_count] = tmp:[repeat_count];            
+        document:[PaloAlto][category]     = tmp:[category];  
+        
+
+        //date
+        if (tmp:[generated_time]) {
+          date("iso", "yyyy/MM/dd HH:mm:ss").on(tmp:[generated_time]).into(document:[obs][ts]);
+        }
+      }
+      else {
+        throw new PunchRuntimeException("Not csv valid format : THREAT");
+      }   
+      break;
+      default :
+        throw new PunchRuntimeException("Unknown type");
+    }
+  } else {
+    throw new PunchRuntimeException("Not type found");
+  }
+}

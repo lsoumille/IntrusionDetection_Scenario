@@ -1,0 +1,50 @@
+{  
+	"topologies" : [ 
+		{
+			"topology" : "single_topology.json",
+			"execution_mode" : "cluster",
+			"cluster" : "main",
+			"reload_action" : "kill_then_start"
+		}
+	],
+    "autotest_latency_control" : {     
+        "path_controls" : {         
+            "to_elasticsearch" : {
+                "input" : {
+                    "pp_platform_id" : "punchplatform-primary",
+                    "tenant_name" : "mytenant",
+                    "channel_name" : "checkpoint_firewall",
+                    "topology_name" : "single",
+                    "storm_container_id" : "main",
+                    "component_name" : "tcp_spout_checkpoint_firewall"
+                },
+                "output" : {
+                    "pp_platform_id" : "punchplatform-primary",
+                    "tenant_name" : "mytenant",
+                    "channel_name" : "checkpoint_firewall",                    
+                    "topology_name" : "single",
+                    "storm_container_id" : "main",
+                    "component_name" : "elasticsearch"
+                },
+                "warn_threshold_s" : 2,
+                "error_threshold_s" : 4
+            }
+        }
+    },
+    "metrics" : {
+        "metrics_source" : {
+            "configuration" : {
+                "type" : "elasticsearch",
+                "cluster_name" : "es_search",
+								"transport" :
+                    "127.0.0.1:9300",
+                "native_es_settings" : {
+                    "transport.netty.workerCount" : "1"
+                }
+            }
+        }
+    },
+    "kafka_topics" : {
+     
+    }
+}

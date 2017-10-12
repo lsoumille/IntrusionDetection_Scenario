@@ -1,0 +1,42 @@
+{
+  // The parsed log is stored as Json under the <stream><data_field> of the punchlet
+  // Default parsers assume the Storm stream is "logs" and the first field in the
+  // PunchBolt configuration is "log" 
+  if (![logs][data]) {
+    throw new PunchRuntimeException("no input data : this parser expect to receive it under [logs][data]");
+  }
+
+
+  Tuple tmp;
+  Tuple document = [logs][log];
+
+
+  if (!grok("%{WORD:document:[alarm][name]} ; %{GREEDYDATA:tmp:[body]}").on([logs][data])) { 
+    throw new PunchRuntimeException("header is not ok");
+  }
+
+  if (!kv().trim().fieldSplit(";").valueSplit(":").on(tmp:[body]).into(tmp:[kv])) {
+    throw new PunchRuntimeException("the body of the log is not key-value");
+  }
+
+  document:[init][host][port] = tmp:[kv][s_port]; //"32769",
+  document:[target][host][port] = tmp:[kv][d_port];
+  document:[app][proto][name] = tmp:[kv][proto]; //"udp",
+  document:[rule][name] = tmp:[kv][rule_name]; //"9",
+  document:[type] = "firewall";
+
+
+  if (tmp:[kv][dst] && grok("%{IP:document:[target][host][ip]}").on(tmp:[kv][dst])) {
+    // // Checking destination IPV6
+    if (grok("%{IPV6}").on(document:[target][host][ip])) {
+      move(document:[target][host][ip]).into(document:[target][host][ipv6]);
+    } 
+  }   
+
+  if (tmp:[kv][src] && grok("%{IP:document:[init][host][ip]}").on(tmp:[kv][src])) {
+      // Checking source IPV6
+    if (grok("%{IPV6}").on(document:[init][host][ip])) {
+      move(document:[init][host][ip]).into(document:[init][host][ipv6]);
+    }
+  }
+}

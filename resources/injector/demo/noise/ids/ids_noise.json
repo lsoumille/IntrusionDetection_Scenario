@@ -1,0 +1,78 @@
+{
+    "destination":{
+        "proto":"tcp",
+        "host":"127.0.0.1",
+        "port":9912
+    },
+    "load":{
+        "total_messages":10000,
+        "stats_publish_interval":"2s",
+        "message_throughput":10
+    },
+    "message":{
+        "payloads":[
+            "%{syslog_timestamp} IPS : %{signature} [Classification: %{classification}] [Priority:%{priority}] {TCP} %{src_ip}:%{src_port} -> %{dst_ip}:%{dst_port}"
+        ],
+        "fields":{
+            "syslog_timestamp":{
+                "type":"timestamp",
+                "format":"MMM dd HH:mm:ss"
+            },
+            "src_ip":{
+                "type":"ipv4",
+                "format":"[11-225].[1-255].[1-255].[1-200]"
+            },
+            "dst_ip":{
+                "type":"ipv4",
+                "format":"172.16.1.3"
+            },
+            "signature":{
+                "type":"list",
+                "content":[
+                    "SNMP request tcp",
+		    "WEB-MISC robots.txt access",
+		    "WEB-IIS iisadmin access",
+		    "WEB-IIS cmd.exe access",
+		    "NETBIOS SMB Session Setup NTMLSSP unicode asn1 overflow attempt",
+		    "Bare Byte Unicode Encoding",
+		    "OS-OTHER Bash CGI environment variable injection attempt",
+		    "WEB-CGI finger access",
+		    "External bufferoverflow attempt",
+		    "Potentially brower hijacking"
+                ]
+            },
+	    "classification":{
+		"type":"list",
+		"content":[
+		    "Attempted Information Leak",
+		    "Access to a Potentially Vulnerable Web Application",
+		    "Web Application Attack",
+		    "Generic Protocol Command Decode",
+		    "Potentially Vulnerable",
+		    "Not Suspicious Traffic",
+		    "Attempted Administrator Privilege Gain",
+		    "Potentially Bad Traffic",
+		    "Attempted Denial of Service",
+		    "Information Leak"
+		]
+	    },
+	    "priority":{
+		"type":"random",
+		"min": 1,
+		"max": 5
+	    },
+	    "src_port":{
+		"type": "random",
+		"min": 1025,
+		"max": 10000
+	    },
+	    "dst_port":{
+		"type":"list",
+		"content":[
+			"80",
+			"443"
+		]
+	    }
+        }
+    }
+}

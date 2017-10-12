@@ -1,0 +1,64 @@
+{
+	# Set here where you want to send your samples. It must be the input point of 
+	# point of your topology
+	"destination" : { "proto" : "tcp", "host" : "127.0.0.1", "port" : 9917 },
+
+	# The input load characteristics. Here injection will stop after
+	# 100000 messages have been sent with a rate of 1000 messages per seconds
+	"load" :{
+		"total_messages" : 5,
+		"stats_publish_interval" : "2s",
+		"message_throughput" : 1
+	},
+
+	# In this section you define what you inject
+	"message" : {
+
+		# the payloads are template of what you inject. In there, %{src} will be replaced by a "src" field
+		# that you define below. 
+		"payloads" : [
+			"%{timestamp},WORKSTATION%{id},%{event_type},%{syslog_timestamp},%{device_name_type},%{drive_letter}"
+	
+],
+ 		
+ 		# Each field must be defined here. 
+ 		# You can use the following field types: 
+ 		#   ipv4 : to generate ipv4 addresses
+ 		#   list : to loop over a set of items
+ 		#   counter : an iterating numeric value
+ 		#   random : a random numeric value
+ 		#   timestamp : a timestamp, for which you fully control the format, the start time, and the
+ 		#               tick interval. 
+		"fields" : {
+			"syslog_timestamp" : {
+				"type" : "timestamp",
+				"format" : 	"MMM dd HH:mm:ss"
+			},
+			"event_type" : {
+				"type" : "list",
+				"content" : ["plug", "unplug"]
+			},
+			"device_name_type" : {
+				"type" : "list",
+				"content" : ["MyUSBKey,USB KEY 2.0",
+					     "BackupStorage,Mass Storage",
+					     "Kingston3,USB KEY 3.0",
+					     "ISO Windows,CD"]
+			},
+			"drive_letter" : {
+				"type" : "list",
+				"content" : ["K:", "E:", "G:", "F:"]
+			},
+			"timestamp" : {
+				"type" : "timestamp",
+				"format" : "MMM dd HH:mm:ss"
+			},
+			"id" : {
+				"type" : "random",
+				"min" : 1,
+				"max" : 20
+			}
+		}
+	}
+}
+

@@ -1,0 +1,24 @@
+{
+    // Throws an exception nothing found under [logs][data]
+    String data = root:[logs][data].asString();
+    Tuple document = root:[logs][log];
+    Tuple tmp;
+    
+    // Log example :
+    // %{duration} %{src_ip} %{result_code} %{bytes_downloaded} %{request_meth} %{url} %{forwarded_ip}
+    // 10 192.168.1.1 200 1000 GET http://www.google.com 192.168.3.2 
+
+    if (!grok("%{INT:tmp:[duration]} %{IP:tmp:[src_ip]} %{INT:tmp:[return_code]} %{INT:tmp:[nb_bytes]} %{WORD:tmp:[method]} %{URI:tmp:[url]} %{IP:tmp:[forwarded_ip]}").on(data)) {
+         throw new PunchRuntimeException("grok failed to parse log body");    
+    }
+
+    document:[type] = "web";
+
+    document:[target][uri][url] = tmp:[url];
+    document:[session][duration] = tmp:[duration];
+    document:[session][in][byte] = tmp:[nb_bytes];
+    document:[squid][request][method] = tmp:[method];
+    document:[app][return][code] = tmp:[return_code];
+    document:[init][host][ip] = tmp:[src_ip];
+    document:[target][host][ip] = tmp:[forwarded_ip];
+}

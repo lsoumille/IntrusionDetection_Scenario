@@ -1,0 +1,26 @@
+{
+  // The parsed log is stored as Json under the <stream><data_field> of the punchlet
+  // Default parsers assume the Storm stream is "logs" and the first field in the
+  // PunchBolt configuration is "log" 
+  if (![logs][data]) {
+    throw new PunchRuntimeException("no input data : this parser expect to receive it under [logs][data]");
+  }
+  Tuple document = [logs][log];
+  Tuple tmp;
+  
+
+  if(!(grok("%{HOSTNAME:tmp:[hostname]} : %{GREEDYDATA:tmp:[signature]} \[Classification: %{DATA:tmp:[alarm_name]}\] \[Priority:%{INT:tmp:[alarm_sev]}\] \{%{WORD:tmp:[proto]}\} %{IP:tmp:[src_ip]}:%{INT:tmp:[src_port]} -> %{IP:tmp:[dst_ip]}:%{INT:tmp:[dst_port]}").on([logs][data]))){  
+    throw new PunchRuntimeException("Invalid log format");
+  }
+  
+  document:[obs][host][name] = tmp:[hostname];
+  document:[alarm][id] = tmp:[alarm_name];
+  document:[alarm][name] = tmp:[signature];
+  document:[alarm][sev] = tmp:[alarm_sev];
+  document:[app][proto][name] = tmp:[proto];
+  document:[init][host][ip] = tmp:[src_ip];
+  document:[init][host][port] = tmp:[src_port];
+  document:[target][host][ip] = tmp:[dst_ip];
+  document:[target][host][port] = tmp:[dst_port];
+  document:[type] = "ids";
+}
