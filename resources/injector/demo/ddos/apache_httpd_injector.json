@@ -6,7 +6,7 @@
 	# The input load characteristics. Here injection will stop after
 	# 100000 messages have been sent with a rate of 1000 messages per seconds
 	"load" :{
-		"total_messages" : 1000,
+		"total_messages" : 10000,
 		"stats_publish_interval" : "2s",
 		"message_throughput" : 100
 	},

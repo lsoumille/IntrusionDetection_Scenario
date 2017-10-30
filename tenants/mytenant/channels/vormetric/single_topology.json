@@ -1,11 +1,11 @@
   {
     "tenant" : "mytenant",
-    "channel" : "paloalto_firewall",
+    "channel" : "vormetric",
     "name" : "single",
     "meta" : {
       "tenant" : "mytenant",
-      "channel" : "paloalto_firewall",
-      "vendor" : "paloalto"
+      "channel" : "vormetric",
+      "vendor" : "thales"
     },
     "spouts" : [
       {
@@ -14,7 +14,7 @@
               "listen" : {
                 "proto" : "tcp", 
                 "host" : "0.0.0.0", 
-                "port" : 9921
+                "port" : 9950
               }, 
               "load_control" : "none",
               "load_control.rate" : 500,
@@ -22,12 +22,12 @@
               "self_monitoring.activation" : true,
               "self_monitoring.period" : 10,
               "metrics_tags" : {
-                "technology": "paloalto" 
+                "technology": "vormetric" 
               }
             },
             "storm_settings" : {
               "executors": 1,
-              "component" : "tcp_spout_paloalto_firewall",
+              "component" : "tcp_spout_vormetric",
               "publish" : [ 
                 { 
                   "stream" : "logs" , 
@@ -55,9 +55,8 @@
           ],
           "punchlet" : [
             "standard/common/input.punch",
-            "LMCUseCases/Palo_Alto/parsing_syslog_header.punch",
-            "LMCUseCases/Palo_Alto/parsing.punch",
-            "standard/common/geoip.punch"
+	    "LMCUseCases/Windows/parsing_header.punch",
+            "LMCUseCases/Windows/parsing.punch"
           ]
         },
         "storm_settings" : {
@@ -76,7 +75,7 @@
           ],
           "subscribe" : [ 
             { 
-              "component" : "tcp_spout_paloalto_firewall", 
+              "component" : "tcp_spout_vormetric", 
               "stream" : "logs",
               "grouping": "localOrShuffle"
             }

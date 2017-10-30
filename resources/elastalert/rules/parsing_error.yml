@@ -1,0 +1,42 @@
+# (Required)
+# Rule name, must be unique
+name: At least one log is not properly parsed
+
+# This option allows you to ignore repeating alerts for a period of time
+realert:
+  minutes: 17
+
+# This option causes the value of realert to exponentially increase while alerts continue to fire.
+exponential_realert:
+  hours: 1
+
+# timestamp settings
+timestamp_field: ts
+timestamp_type: iso
+
+# (Required)
+# Type of alert.
+# The blacklist rule matches when a certain field against a blacklist, and match if it is in the blacklist.
+type: blacklist
+
+# (Required)
+# Index to search, wildcard supported
+index: events-*
+
+# (Required, blacklist specific)
+# The name of the field to use to compare to the blacklist. If the field is null, those events will be ignored.
+compare_key: type
+
+# (Required, blacklist specific)
+# A list of blacklisted values. The compare_key term must be equal to one of these values for it to match.
+blacklist: 
+  - "error"
+
+# (Required)
+# The alert is use when a match is found
+alert:
+- command
+
+command:
+  - "/bin/echo"
+  - "Alert!!!"

@@ -5,7 +5,7 @@
         "port":9921
     },
     "load":{
-        "total_messages":10000,
+        "total_messages":12000,
         "stats_publish_interval":"2s",
         "message_throughput":100
     },

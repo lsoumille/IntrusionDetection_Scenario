@@ -1,0 +1,65 @@
+# (Required)
+# Rule name, must be unique
+name: "Potential threat found on a workstation"
+
+# This option allows you to ignore repeating alerts for a period of time
+realert:
+  minutes: 17
+
+# This option causes the value of realert to exponentially increase while alerts continue to fire.
+exponential_realert:
+  hours: 1
+
+# timestamp settings
+timestamp_field: ts
+#timestamp_type: iso
+
+# (Required)
+# Type of alert.
+# The blacklist rule matches when a certain field against a blacklist, and match if it is in the blacklist.
+type: any
+
+# (Required)
+# Index to search, wildcard supported
+index: events-*
+
+# (Required, spike specific)
+# spike_height: The ratio of number of events in the last timeframe to the previous timeframe that when hit will trigger an alert.
+#spike_height: 2
+
+# (Required, spike specific)
+# Either ‘up’, ‘down’ or ‘both’. ‘Up’ meaning the rule will only match when the number of events is spike_height times higher. ‘Down’ meaning the reference number is spike_height higher than the current number. ‘Both’ will match either.
+#spike_type: both
+
+# (Required, spike specific)
+# The rule will average out the rate of events over this time period. For example, hours: 1 means that the ‘current’ window will span from present to one hour ago, and the ‘reference’ window will span from one hour ago to two hours ago. The rule will not be active until the time elapsed from the first event is at least two timeframes. This is to prevent an alert being triggered before a baseline rate has been established. This can be overridden using alert_on_new_data.
+#timeframe:
+#  minutes: 1
+
+# The minimum number of events that must exist in the reference window for an alert to trigger. For example, if spike_height: 3 and threshold_ref: 10, than the ‘reference’ window must contain at least 10 events and the ‘current’ window at least three times that for an alert to be triggered.
+#threshold_ref: 10
+
+# This option is only used if query_key is set. When this is set to true, any new query_key encountered may trigger an immediate alert. When set to false, baseline must be established for each new query_key value, and then subsequent spikes may cause alerts. Baseline is established after timeframe has elapsed twice since first occurrence.
+#alert_on_new_data: true
+
+# Specify the _type of document to search for. This must be present if use_count_query or use_terms_query is set.
+#doc_type: log
+
+#  If true, ElastAlert will make an aggregation query against Elasticsearch to get counts of documents matching each unique value of query_key. This must be used with query_key and doc_type. This will only return a maximum of terms_size, default 50, unique terms.
+#use_terms_query: true
+
+# Counts of documents will be stored independently for each value of query_key.
+#query_key: vendor
+filter:
+- query:
+   query_string:
+     query: "alarm.name: \"Potential Threats Found\""
+
+# (Required)
+# The alert is use when a match is found
+alert:
+- command
+
+command:
+  - "/bin/echo"
+  - "Alert!!!"
