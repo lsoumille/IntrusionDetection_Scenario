@@ -25,7 +25,7 @@ index: events-*
 
 # (Required, spike specific)
 # spike_height: The ratio of number of events in the last timeframe to the previous timeframe that when hit will trigger an alert.
-spike_height: 2
+spike_height: 3
 
 # (Required, spike specific)
 # Either ‘up’, ‘down’ or ‘both’. ‘Up’ meaning the rule will only match when the number of events is spike_height times higher. ‘Down’ meaning the reference number is spike_height higher than the current number. ‘Both’ will match either.
@@ -34,10 +34,10 @@ spike_type: up
 # (Required, spike specific)
 # The rule will average out the rate of events over this time period. For example, hours: 1 means that the ‘current’ window will span from present to one hour ago, and the ‘reference’ window will span from one hour ago to two hours ago. The rule will not be active until the time elapsed from the first event is at least two timeframes. This is to prevent an alert being triggered before a baseline rate has been established. This can be overridden using alert_on_new_data.
 timeframe:
-  minutes: 1
+  seconds: 30
 
 # The minimum number of events that must exist in the reference window for an alert to trigger. For example, if spike_height: 3 and threshold_ref: 10, than the ‘reference’ window must contain at least 10 events and the ‘current’ window at least three times that for an alert to be triggered.
-threshold_ref: 10
+threshold_ref: 5
 
 # This option is only used if query_key is set. When this is set to true, any new query_key encountered may trigger an immediate alert. When set to false, baseline must be established for each new query_key value, and then subsequent spikes may cause alerts. Baseline is established after timeframe has elapsed twice since first occurrence.
 alert_on_new_data: true
